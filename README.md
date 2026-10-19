@@ -2,11 +2,17 @@
 
 A multi-agent Telegram bot engineered to eliminate Large Language Model (LLM) hallucinations. Sierra uses a hybrid parallel-sequential multi-agent pipeline combining Google Gemini 3.6 Flash, DeepSeek-v4-Flash, Tencent HY3, and Gemma 4 to debate, cross-verify, and vote on output accuracy.
 
+⚠️ **Project Notice:** This bot is designed strictly as a **single-user personal solution**.
+
 ## Architectural Workflow
 
-* **Sequential Chain (Module 1):** Gemini 3.6 generates an initial answer. Tencent HY3 critiques it, and DeepSeek-v4-Flash synthesizes the response. Gemma 4 acts as an arbiter to calculate model consensus
+* **Sequential Chain (Module 1):** Gemini 3.6 generates an initial answer. Tencent HY3 critiques it, and DeepSeek-v4-Flash synthesizes the response. Gemma 4 acts as an arbiter to calculate model consensus.
 * **Parallel Consensus (Module 2):** Queries Gemini, DeepSeek, and HY3 simultaneously via asyncio.gather. Gemma 4 tallies vote counts and flags discrepancies.
-* **Iterative Refinement (Module 3):** Combines the outputs of Modules 1 & 2. If Iteration Mode is active, Sierra extracts disputed questions and re-runs the resolution loop up to 3 times to isolate facts.
+* **Consensus Synthesis (Module 3):** Combines the outputs of Modules 1 & 2 via `asyncio.gather`. If any logical discrepancies are found between the two streams, the final answer block is intentionally left blank to block potential hallucinations from reaching the user.
+* **Hysteresis Extraction Loop (Module 4):** If Iteration Mode is active and Module 3 detects contradictions, Module 4 isolates the disputed facts from the core request using Gemma 4. It extracts only the problematic questions, overwrites the user request context, and triggers a new loop iteration (up to 3 cycles) to drill down into the truth.
+
+### Fault Tolerance
+* **Swap in Fallbacks:** If a primary model encounters server errors (HTTP 500/503), the backend automatically traps the exception, implements a timeout sleep, and switches the failed node to a verified fallback model.
 
 ## Hallucination Benchmark
 
@@ -46,7 +52,7 @@ Top-1 Error Rate measures the error rate when selecting the model's highest-prob
 ```
 git clone https://github.com/Kvazar322/Sierra-multi-agent.git
 cd Sierra-multi-agent
-pip install pyTelegramBotAPI google-genai openrouter
+pip install pyTelegramBotAPI google-genai openrouter httpx
 ```
 
 2. Rename config.json.example to config.json and fill in your credentials.

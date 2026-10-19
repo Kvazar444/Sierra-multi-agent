@@ -68,7 +68,7 @@ def get_params():
 
         return lim_tok, prompt
 
-async def error_handler(error_code, iterations_while, model):
+async def error_handler(error_code, iterations_count, model):
     error_msg = str(error_code)
     is_server_error = any(code in error_msg for code in ("500", "503"))
 
@@ -79,34 +79,34 @@ async def error_handler(error_code, iterations_while, model):
         "tencent/hy3": "nvidia/nemotron-3-super-120b-a12b:free"
     }
 
-    if is_server_error and iterations_while != 3:
+    if is_server_error and iterations_count < 3:
         print(f"Повторная попытка для {model}...")
         bot.send_message(chat_id=id_chat, text=f"Повторная попытка для {model}...")
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(20)
 
-        return True, model, iterations_while
+        return True, model
 
-    elif is_server_error and swap_fallbacks.state == True:
+    elif is_server_error and swap_fallbacks.state == True and iterations_count == 3:
 
         if model in fallback_rules:
             next_model = fallback_rules[model]
 
-            print("Попытка смены модели...")
-            bot.send_message(chat_id=id_chat, text="Попытка смены модели...")
+            print(f"Попытка смены модели на {next_model} для {model}...")
+            bot.send_message(chat_id=id_chat, text=f"Попытка смены модели на {next_model} для {model}...")
 
-            return True, next_model, 1
+            return True, next_model
 
         else:
             print(f"Неопознаная ошибка или не удалось её решить сменой модели. Нулевая модель - {model}: {error_code}")
             bot.send_message(chat_id=id_chat, text=f"Неопознаная ошибка или не удалось её решить сменой модели. Нулевая модель - {model}: {error_code}")
             
-            return False, model, iterations_while
+            return False, model
             
     print(f"Неопознаная ошибка или не удалось её решить для {model}: {error_code}")
     bot.send_message(chat_id=id_chat, text=f"Неопознаная ошибка или не удалось её решить для {model}: {error_code}")
     
-    return False, model, iterations_while
+    return False, model
 
 # Ответ deepseek
 async def deepseek_work(input_text_deepseek):
@@ -133,7 +133,7 @@ async def deepseek_work(input_text_deepseek):
             return clean_content
             
         except Exception as e:
-            iterations_while, model, iterations = await error_handler(e, iterations, model)
+            iterations_while, model = await error_handler(e, iterations, model)
             iterations += 1
 
     return None
@@ -163,7 +163,7 @@ async def gpt_work (input_text_gpt):
             return clean_content
             
         except Exception as e:
-            iterations_while = await error_handler(e, iterations, model)
+            iterations_while, model = await error_handler(e, iterations, model)
             iterations += 1
 
     return None
@@ -192,7 +192,7 @@ async def gemini_work (input_text_gemini):
             return clean_content
         
         except Exception as e:
-            iterations_while, model, iterations = await error_handler(e, iterations, model)
+            iterations_while, model = await error_handler(e, iterations, model)
             iterations += 1
 
     return None
@@ -221,7 +221,7 @@ async def gemma_work (input_text_gemma):
             return clean_content
 
         except Exception as e:
-            iterations_while, model, iterations = await error_handler(e, iterations, model)
+            iterations_while, model = await error_handler(e, iterations, model)
             iterations += 1
 
     return None    
@@ -254,7 +254,7 @@ async def osr_work (input_text_ocr):
             return clean_content
         
         except Exception as e:
-            iterations_while, model, iterations = await error_handler(e, iterations, model)
+            iterations_while, model = await error_handler(e, iterations, model)
             iterations += 1
 
     return None  
@@ -416,7 +416,7 @@ def info():
         f"\n🥵Итерации - {iterations_switch.state}"
         f"\n🔥Ограничение токенов - {limit_tokens_switch.state}"
         f"\n📖Длинный ответ - {long_request_switch.state} - Функция в beta версии!"
-        f"\nСпав в Fallbacks - {swap_fallbacks.state} - Функция в beta версии!"
+        f"\nСмена в Fallbacks - {swap_fallbacks.state} - Функция в beta версии!"
         "\n-------------------"
         "\n--🥵Итерации это режим при котором Сиера делает 3 круга. Увеличивает охват на n%"
         "\n⚠️ Увеличивает кол-во используемых токенов в ⁓3 раза."
@@ -434,7 +434,8 @@ def info():
         "\n--👀 OСR(beta) даёт возможность распознавать текст с фото."
         "\n⚠️ При использовании фото писать ничего нельзя вместе с фото!"
         "\n-------------------"
-        "\n--❇️Sierra (0.9.0 pre) это узкоспециализированный, продвинутый, безошибочный  мульти-агент."
+        "\n--❇️Sierra (0.9.1) это узкоспециализированный, продвинутый, безошибочный  мульти-агент."
+        "\n‼️Sierra не имеет контекстного окна памяти!"
         )
     
     return text
