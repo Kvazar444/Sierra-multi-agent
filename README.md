@@ -18,7 +18,7 @@ A multi-agent Telegram bot engineered to eliminate Large Language Model (LLM) ha
 
 Evaluated on a custom benchmark dataset of 50 complex test questions designed to trigger model hallucinations.
 
-| Model / System | Question Coverage | Ground Truth Accuracy (Covered) | Precision | Top-1 Error Rate |
+| Model / System | Question Coverage | Ground Truth Accuracy (Covered) | Coverage errors | Top-1 Error Rate |
 | :--- | :---: | :---: | :---: | :---: |
 | **Sierra 0.5.2** | **76%** | **100%** | **0%** | **10%** |
 | Sierra 0.3.0 | 39% | 100% | 0% | 45% |
